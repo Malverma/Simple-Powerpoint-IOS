@@ -1,0 +1,36 @@
+name: iPad smoke test
+
+on:
+  push:
+    branches: ['debug/**']
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install xcodegen && xcodegen generate
+      - name: Pick iPad simulator
+        run: |
+          xcrun simctl list devices available | grep -i ipad
+          UDID=$(xcrun simctl list devices available | grep -i "iPad" | grep -v -i mini | head -1 | grep -oE '[0-9A-F-]{36}')
+          echo "UDID=$UDID" >> $GITHUB_ENV
+      - name: Test
+        run: |
+          set -o pipefail
+          xcodebuild test -project SimpleSlides.xcodeproj -scheme SimpleSlides \
+            -destination "id=$UDID" -resultBundlePath result.xcresult \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee test.log | grep -vE "^(CompileSwift|SwiftCompile|Ld |CodeSign|ProcessInfoPlist|    cd |    export|    /Applications)" | tail -400 || true
+      - name: Crash logs
+        if: always()
+        run: |
+          ls -la ~/Library/Logs/DiagnosticReports/ || true
+          for f in ~/Library/Logs/DiagnosticReports/SimpleSlides*; do echo "=== $f"; head -c 20000 "$f"; done || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-results
+          path: |
+            result.xcresult
+            test.log

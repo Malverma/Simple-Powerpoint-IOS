@@ -13,6 +13,8 @@ targets:
   SimpleSlides:
     type: application
     platform: iOS
+    scheme:
+      testTargets: [SimpleSlidesUITests]
     sources:
       - path: SimpleSlides
     settings:
@@ -53,3 +55,14 @@ targets:
             CFBundleTypeRole: Editor
             LSHandlerRank: Owner
             LSItemContentTypes: [com.malverma.simpleslides.deck]
+  SimpleSlidesUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: SimpleSlidesUITests
+    dependencies:
+      - target: SimpleSlides
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.malverma.simpleslides.uitests
