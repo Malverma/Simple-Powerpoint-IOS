@@ -14,15 +14,15 @@ struct SimpleSlidesApp: App {
             NavigationStack {
                 LibraryView(store: store, openDeck: $openDeck)
             }
-            // The editor is presented as its own root NavigationStack rather than pushed:
+            // The editor is presented full screen (with its own NavigationStack) rather than pushed:
             // its `.inspector` inside a pushed destination blanks the view and crashes
             // SwiftUI's navigation path handling on iPad.
             .fullScreenCover(item: $openDeck) { ref in
-                NavigationStack {
-                    if let deck = store.deck(ref.id) {
-                        EditorView(deck: deck, store: store)
-                            .id(ref.id)
-                    } else {
+                if let deck = store.deck(ref.id) {
+                    EditorView(deck: deck, store: store)
+                        .id(ref.id)
+                } else {
+                    NavigationStack {
                         ContentUnavailableView("Deck Not Found", systemImage: "questionmark.folder")
                             .toolbar {
                                 ToolbarItem(placement: .cancellationAction) {

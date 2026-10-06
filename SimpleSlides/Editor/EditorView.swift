@@ -23,27 +23,15 @@ struct EditorView: View {
     }
 
     var body: some View {
-        Group {
-            if hSize == .regular {
-                HStack(spacing: 0) {
-                    SlideStrip(model: model, vertical: true)
-                        .frame(width: 170)
-                    Divider()
-                    center
-                }
-            } else {
-                VStack(spacing: 0) {
-                    center
-                    Divider()
-                    SlideStrip(model: model, vertical: false)
-                        .frame(height: 86)
-                }
-            }
+        // The inspector sits outside the NavigationStack so it gets its own full-height
+        // column and toolbar instead of merging its items into the editor's bar.
+        NavigationStack {
+            editor
+                .navigationTitle(model.deckBinding(\.title, coalesce: "title"))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbarRole(.editor)
+                .toolbar { toolbarContent }
         }
-        .navigationTitle(model.deckBinding(\.title, coalesce: "title"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarRole(.editor)
-        .toolbar { toolbarContent }
         .inspector(isPresented: $showInspector) {
             InspectorView(model: model, onPickImage: { id in
                 photoTarget = id
@@ -88,6 +76,26 @@ struct EditorView: View {
         }
         .onDisappear { model.saveNow() }
         .background(keyboardShortcuts)
+    }
+
+    private var editor: some View {
+        Group {
+            if hSize == .regular {
+                HStack(spacing: 0) {
+                    SlideStrip(model: model, vertical: true)
+                        .frame(width: 170)
+                    Divider()
+                    center
+                }
+            } else {
+                VStack(spacing: 0) {
+                    center
+                    Divider()
+                    SlideStrip(model: model, vertical: false)
+                        .frame(height: 86)
+                }
+            }
+        }
     }
 
     private var center: some View {
