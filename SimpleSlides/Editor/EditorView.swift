@@ -4,6 +4,7 @@ import PhotosUI
 struct EditorView: View {
     @State private var model: EditorModel
     @Environment(\.horizontalSizeClass) private var hSize
+    @Environment(\.dismiss) private var dismiss
 
     @State private var showInspector = false
     @State private var presenting = false
@@ -107,6 +108,16 @@ struct EditorView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            Button {
+                model.saveNow()
+                dismiss()
+            } label: {
+                Label("Presentations", systemImage: "chevron.backward")
+            }
+            .accessibilityLabel("Presentations")
+        }
+
         ToolbarItemGroup(placement: .topBarTrailing) {
             Menu {
                 Button { presentFromStart = false; presenting = true } label: {

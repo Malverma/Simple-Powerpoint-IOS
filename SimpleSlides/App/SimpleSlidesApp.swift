@@ -3,7 +3,7 @@ import SwiftUI
 @main
 struct SimpleSlidesApp: App {
     @State private var store = DeckStore.shared
-    @State private var path: [UUID] = []
+    @State private var openDeck: DeckRef?
 
     init() {
         FontCatalog.registerImportedFonts()
@@ -11,22 +11,37 @@ struct SimpleSlidesApp: App {
 
     var body: some Scene {
         WindowGroup {
-            NavigationStack(path: $path) {
-                LibraryView(store: store, path: $path)
-                    .navigationDestination(for: UUID.self) { id in
-                        if let deck = store.deck(id) {
-                            EditorView(deck: deck, store: store)
-                                .id(id)
-                        } else {
-                            ContentUnavailableView("Deck Not Found", systemImage: "questionmark.folder")
-                        }
+            NavigationStack {
+                LibraryView(store: store, openDeck: $openDeck)
+            }
+            // The editor is presented as its own root NavigationStack rather than pushed:
+            // its `.inspector` inside a pushed destination blanks the view and crashes
+            // SwiftUI's navigation path handling on iPad.
+            .fullScreenCover(item: $openDeck) { ref in
+                NavigationStack {
+                    if let deck = store.deck(ref.id) {
+                        EditorView(deck: deck, store: store)
+                            .id(ref.id)
+                    } else {
+                        ContentUnavailableView("Deck Not Found", systemImage: "questionmark.folder")
+                            .toolbar {
+                                ToolbarItem(placement: .cancellationAction) {
+                                    Button("Close") { openDeck = nil }
+                                }
+                            }
                     }
+                }
             }
             .onOpenURL { url in
                 if let deck = try? store.importPackage(from: url) {
-                    path = [deck.id]
+                    openDeck = DeckRef(id: deck.id)
                 }
             }
         }
     }
+}
+
+/// Identifies the deck open in the editor.
+struct DeckRef: Identifiable, Hashable {
+    let id: UUID
 }

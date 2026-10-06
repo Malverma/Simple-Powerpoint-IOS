@@ -15,11 +15,12 @@ enum DeckSort: String, CaseIterable, Identifiable {
 
 struct LibraryView: View {
     @Bindable var store: DeckStore
-    @Binding var path: [UUID]
+    @Binding var openDeck: DeckRef?
 
     @State private var search = ""
     @AppStorage("deckSort") private var sort: DeckSort = .edited
     @State private var showNew = false
+    @State private var pendingOpen: UUID?
     @State private var showSettings = false
     @State private var importing = false
     @State private var renaming: Deck?
@@ -58,7 +59,9 @@ struct LibraryView: View {
             }
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 160, maximum: 280), spacing: 16)], spacing: 20) {
                 ForEach(decks) { deck in
-                    NavigationLink(value: deck.id) {
+                    Button {
+                        openDeck = DeckRef(id: deck.id)
+                    } label: {
                         DeckCard(deck: deck)
                     }
                     .buttonStyle(.plain)
@@ -88,9 +91,15 @@ struct LibraryView: View {
                     .accessibilityLabel("New Presentation")
             }
         }
-        .sheet(isPresented: $showNew) {
+        .sheet(isPresented: $showNew, onDismiss: {
+            // Open only once the sheet is gone; presenting the editor mid-dismissal is dropped.
+            if let id = pendingOpen {
+                pendingOpen = nil
+                openDeck = DeckRef(id: id)
+            }
+        }) {
             NewDeckSheet(store: store) { deck in
-                path.append(deck.id)
+                pendingOpen = deck.id
             }
         }
         .sheet(isPresented: $showSettings) { SettingsView() }
@@ -98,7 +107,7 @@ struct LibraryView: View {
         .fileImporter(isPresented: $importing, allowedContentTypes: [.simpleSlidesDeck, .json, .data]) { result in
             do {
                 let deck = try store.importPackage(from: result.get())
-                path.append(deck.id)
+                openDeck = DeckRef(id: deck.id)
             } catch {
                 self.error = "That file couldn't be opened as a SimpleSlides deck."
             }

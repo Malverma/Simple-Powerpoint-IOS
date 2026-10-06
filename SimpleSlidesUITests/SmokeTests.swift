@@ -20,44 +20,51 @@ final class SmokeTests: XCTestCase {
         print("=== TREE \(name) ===\n\(app.debugDescription)")
     }
 
+    private func editorIsOpen(_ app: XCUIApplication) -> Bool {
+        app.descendants(matching: .any)["Insert"].waitForExistence(timeout: 5)
+    }
+
+    private func backToLibrary(_ app: XCUIApplication) {
+        app.buttons["Presentations"].firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["Presentations"].waitForExistence(timeout: 5), "did not return to library")
+    }
+
+    private func openCard(_ app: XCUIApplication, containing text: String) {
+        let card = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 5), "\(text) card missing")
+        card.tap()
+        sleep(2)
+    }
+
     func testOpenSampleDeck() {
         let app = XCUIApplication()
         app.launch()
-        sleep(2)
         shot(app, "library")
-        dumpTree(app, "library")
-        let card = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Welcome'")).firstMatch
-        XCTAssertTrue(card.waitForExistence(timeout: 5), "sample card missing")
-        card.tap()
-        sleep(3)
-        print("=== STATE after sample tap: \(app.state.rawValue)")
+        openCard(app, containing: "Welcome")
         XCTAssertEqual(app.state, .runningForeground, "app died opening sample deck")
         shot(app, "sample-editor")
         dumpTree(app, "sample-editor")
+        XCTAssertTrue(editorIsOpen(app), "sample editor did not open")
+        backToLibrary(app)
+        openCard(app, containing: "Welcome")
+        XCTAssertTrue(editorIsOpen(app), "sample editor did not reopen")
     }
 
     func testCreateAndOpenNewDeck() {
         let app = XCUIApplication()
         app.launch()
-        sleep(2)
         app.buttons["New Presentation"].tap()
-        sleep(1)
-        shot(app, "new-sheet")
+        XCTAssertTrue(app.buttons["Create"].waitForExistence(timeout: 5))
         app.buttons["Create"].tap()
-        sleep(3)
-        print("=== STATE after create: \(app.state.rawValue)")
+        sleep(2)
         shot(app, "after-create")
         dumpTree(app, "after-create")
-        if app.state == .runningForeground, !app.buttons["Insert"].exists {
-            let card = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Untitled'")).firstMatch
-            XCTAssertTrue(card.waitForExistence(timeout: 5), "new card missing")
-            card.tap()
-            sleep(3)
-            print("=== STATE after new card tap: \(app.state.rawValue)")
-            shot(app, "after-card-tap")
-            dumpTree(app, "after-card-tap")
-        }
-        XCTAssertEqual(app.state, .runningForeground)
-        XCTAssertTrue(app.buttons["Insert"].exists, "editor did not open")
+        XCTAssertEqual(app.state, .runningForeground, "app died creating deck")
+        XCTAssertTrue(editorIsOpen(app), "editor did not open after create")
+        backToLibrary(app)
+        openCard(app, containing: "Untitled")
+        shot(app, "after-card-tap")
+        XCTAssertEqual(app.state, .runningForeground, "app died reopening new deck")
+        XCTAssertTrue(editorIsOpen(app), "new deck did not reopen")
     }
 }
