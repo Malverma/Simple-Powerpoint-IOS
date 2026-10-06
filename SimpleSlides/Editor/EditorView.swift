@@ -30,6 +30,7 @@ struct EditorView: View {
                 .navigationTitle(model.deckBinding(\.title, coalesce: "title"))
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbarRole(.editor)
+                .navigationBarBackButtonHidden(true)
                 .toolbar { toolbarContent }
         }
         .inspector(isPresented: $showInspector) {
